@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <dimen name="view_cardview_margin_topbottom">0.1dp</dimen>
+    <dimen name="view_cardview_margin_leftright">0.1dp</dimen>
+
+</resources>
