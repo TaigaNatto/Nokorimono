@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorMainBackGround"
+    tools:context="com.example.taiga.nokorimono.RegistActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="2">
+
+            <ImageView
+                android:id="@+id/item_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@color/colorPrimary"
+                android:tint="#aa000000" />
+
+            <ImageView
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_add_a_photo_white_24dp"
+                android:onClick="goImageFolder"/>
+
+        </FrameLayout>
+
+        <EditText
+            android:id="@+id/regist_name"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginLeft="5dp"
+            android:layout_marginRight="5dp"
+            android:layout_weight="0.4"
+            android:hint="名前"
+            android:textColor="@color/colorMainText"
+            android:textColorHint="@color/colorSubText" />
+
+        <EditText
+            android:id="@+id/regist_memo"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginLeft="5dp"
+            android:layout_marginRight="5dp"
+            android:layout_weight="2"
+            android:gravity="top"
+            android:hint="メモ"
+            android:textColor="@color/colorMainText"
+            android:textColorHint="@color/colorSubText" />
+
+    </LinearLayout>
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/tool_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#00000000"
+        android:minHeight="?attr/actionBarSize"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar">
+
+        <ImageView
+            android:layout_width="30dp"
+            android:layout_height="match_parent"
+            android:src="@drawable/ic_chevron_left_white_24dp"
+            android:layout_weight="1"
+            android:onClick="backActivity"/>
+
+    </android.support.v7.widget.Toolbar>
+
+</RelativeLayout>

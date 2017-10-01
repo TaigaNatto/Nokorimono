@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "859377934417",
+    "firebase_url": "https://nokorimono-34871.firebaseio.com",
+    "project_id": "nokorimono-34871",
+    "storage_bucket": "nokorimono-34871.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:859377934417:android:bf27d8b84add1dbc",
+        "android_client_info": {
+          "package_name": "com.example.taiga.nokorimono"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "859377934417-ge9a31danoq0f467v38noghd06r9gtgv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6dubIFmBx92r53ivG7t7vC6pgQbSm2cw"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

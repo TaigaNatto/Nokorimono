@@ -46,6 +46,10 @@ public class GridMainAdapter extends BaseAdapter {
         mItemArray.add(item);
     }
 
+    public void clear(){
+        mItemArray.clear();
+    }
+
     public View getView(int position, View convertView, ViewGroup parent) {
 
         ViewHolder holder;
