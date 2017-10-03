@@ -54,6 +54,10 @@ public class MainActivity extends AppCompatActivity {
 
     ArrayList<ItemEntity> itemEntitieList;
 
+    int clickPos = 0;
+
+    boolean clickFlag=false;
+
     Toolbar toolbar;
 
     @Override
@@ -69,7 +73,9 @@ public class MainActivity extends AppCompatActivity {
         toolbar.setTitle("");
         setSupportActionBar(toolbar);
 
-        gridMainAdapter=new GridMainAdapter(this);
+        itemEntitieList = new ArrayList<>();
+
+        gridMainAdapter = new GridMainAdapter(this);
 
         //確認用Dialog用レイアウトの読み込み
         LayoutInflater comFactory = LayoutInflater.from(this);
@@ -85,29 +91,44 @@ public class MainActivity extends AppCompatActivity {
         dialogSeekV.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                FirebaseDatabase database = FirebaseDatabase.getInstance();
+                DatabaseReference myRef = database.getReference("items");
+                ItemEntity itemEntity=itemEntitieList.get(clickPos);
                 //シークバーの場所でtextの表示変更
                 switch (getSeekGoodPoint(i)) {
                     case 0:
                         dialogSeekTextV.setText("もう無い");
                         dialogBatteryV.setImageResource(R.drawable.battery_0_720);
+                        // Write a message to the database
+                        itemEntity.setNokoriPoint(0);
                         break;
                     case 25:
                         dialogSeekTextV.setText("ちょっとある");
                         dialogBatteryV.setImageResource(R.drawable.battery_1_720);
+                        // Write a message to the database
+                        itemEntity.setNokoriPoint(1);
                         break;
                     case 50:
                         dialogSeekTextV.setText("まだある");
                         dialogBatteryV.setImageResource(R.drawable.battery_2_720);
+                        // Write a message to the database
+                        itemEntity.setNokoriPoint(2);
                         break;
                     case 75:
                         dialogSeekTextV.setText("けっこうある");
                         dialogBatteryV.setImageResource(R.drawable.battery_3_720);
+                        // Write a message to the database
+                        itemEntity.setNokoriPoint(3);
                         break;
                     case 100:
                         dialogSeekTextV.setText("たくさんある");
                         dialogBatteryV.setImageResource(R.drawable.battery_4_720);
+                        // Write a message to the database
+                        itemEntity.setNokoriPoint(4);
                         break;
                 }
+                itemEntitieList.set(clickPos,itemEntity);
+                myRef.setValue(itemEntitieList);
             }
 
             @Override
@@ -128,16 +149,15 @@ public class MainActivity extends AppCompatActivity {
         userRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                //カスタムアダプターの初期化
-                gridMainAdapter.clear();
-                //Userインスタンスの取得
-                Object obj=dataSnapshot.getValue();
-                if(obj instanceof List) {
-                    itemEntitieList = (ArrayList<ItemEntity>) obj;
-                    // do your magic with values
-                    for (int i = 0; i < itemEntitieList.size(); i++) {
-                        gridMainAdapter.add(itemEntitieList.get(i).getName());
-                        //カスタムアダプターのセット
+                if(!clickFlag) {
+                    //カスタムアダプターの初期化
+                    gridMainAdapter.clear();
+                    itemEntitieList.clear();
+                    //Userインスタンスの取得
+                    for (DataSnapshot data : dataSnapshot.getChildren()) {
+                        ItemEntity item = data.getValue(ItemEntity.class);
+                        gridMainAdapter.add(item);
+                        itemEntitieList.add(item);
                     }
                     gridView.setAdapter(gridMainAdapter);
                 }
@@ -162,7 +182,28 @@ public class MainActivity extends AppCompatActivity {
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int pos, long l) {
-                dialogTextV.setText(gridMainAdapter.getItem(pos).toString());
+                clickPos = pos;
+                clickFlag=true;
+                dialogTextV.setText(gridMainAdapter.getItem(pos).getName());
+                dialogEditV.setText(gridMainAdapter.getItem(pos).getMemo());
+                //残りポイントで残高変更
+                switch (gridMainAdapter.getItem(pos).getNokoriPoint()) {
+                    case 0:
+                        dialogSeekV.setProgress(0);
+                        break;
+                    case 1:
+                        dialogSeekV.setProgress(25);
+                        break;
+                    case 2:
+                        dialogSeekV.setProgress(50);
+                        break;
+                    case 3:
+                        dialogSeekV.setProgress(75);
+                        break;
+                    case 4:
+                        dialogSeekV.setProgress(100);
+                        break;
+                }
                 //確認ダイアログの表示
                 showDialog(MainActivity.this);
             }
@@ -195,6 +236,7 @@ public class MainActivity extends AppCompatActivity {
     public void editItem(View v) {
         //編集画面にいく
         Intent intent = new Intent(this, RegistActivity.class);
+        intent.putExtra("pos",clickPos);
         startActivity(intent);
     }
 
@@ -209,6 +251,19 @@ public class MainActivity extends AppCompatActivity {
             //Dialog生成
             alertDialog = new AlertDialog.Builder(context)
                     .setView(inputView)
+                    .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                        @Override
+                        public void onDismiss(DialogInterface dialogInterface) {
+                            clickFlag=false;
+                            FirebaseDatabase database = FirebaseDatabase.getInstance();
+                            DatabaseReference myRef = database.getReference("items");
+                            ItemEntity itemEntity=itemEntitieList.get(clickPos);
+                            itemEntity.setMemo(dialogEditV.getText().toString());
+                            itemEntitieList.set(clickPos,itemEntity);
+                            myRef.setValue(itemEntitieList);
+                            reloadGridView();
+                        }
+                    })
                     .create();
         }
         alertDialog.show();
@@ -227,5 +282,15 @@ public class MainActivity extends AppCompatActivity {
         } else {
             return 100;
         }
+    }
+
+    //リロード
+    public void reloadGridView(){
+        //カスタムアダプターの初期化
+        gridMainAdapter.clear();
+        for(int i=0;i<itemEntitieList.size();i++){
+            gridMainAdapter.add(itemEntitieList.get(i));
+        }
+        gridView.setAdapter(gridMainAdapter);
     }
 }

@@ -32,8 +32,6 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import static com.example.taiga.nokorimono.R.id.imageView;
-
 public class RegistActivity extends AppCompatActivity {
     private static final int RESULT_PICK_IMAGEFILE = 1000;
 
@@ -48,6 +46,8 @@ public class RegistActivity extends AppCompatActivity {
 
     ArrayList<ItemEntity> itemEntities;
 
+    int intentPos;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,13 +59,28 @@ public class RegistActivity extends AppCompatActivity {
 
         storage = FirebaseStorage.getInstance();
 
+        itemEntities=new ArrayList<>();
+
+        Intent intent =getIntent();
+        intentPos=intent.getIntExtra("pos",-1);
+
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference userRef = database.getReference("items");
 
         userRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                itemEntities=dataSnapshot.getValue(ArrayList.class);
+                MainActivity m=new MainActivity();
+                if(!m.clickFlag) {
+                    for (DataSnapshot data : dataSnapshot.getChildren()) {
+                        ItemEntity item = data.getValue(ItemEntity.class);
+                        itemEntities.add(item);
+                    }
+                    if(intentPos!=-1){
+                        nameEditV.setText(itemEntities.get(intentPos).getName());
+                        memoEditV.setText(itemEntities.get(intentPos).getMemo());
+                    }
+                }
             }
 
             @Override
