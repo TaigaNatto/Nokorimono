@@ -1,5 +1,6 @@
 package com.example.taiga.nokorimono;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -9,6 +10,7 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -26,6 +28,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.squareup.picasso.Picasso;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
@@ -40,9 +43,16 @@ public class RegistActivity extends AppCompatActivity {
     EditText nameEditV;
     EditText memoEditV;
 
+    ItemEntity intentItem;
+
+    String imageUri="";
+
     Bitmap temp;
 
-    FirebaseStorage storage;
+    //storage
+    private StorageReference mStorage;
+
+    private ProgressDialog mProgressDialog;
 
     ArrayList<ItemEntity> itemEntities;
 
@@ -57,63 +67,79 @@ public class RegistActivity extends AppCompatActivity {
         nameEditV = (EditText) findViewById(R.id.regist_name);
         memoEditV = (EditText) findViewById(R.id.regist_memo);
 
-        storage = FirebaseStorage.getInstance();
+        mStorage = FirebaseStorage.getInstance().getReference();
+        mProgressDialog = new ProgressDialog(this);
 
-        itemEntities=new ArrayList<>();
-
-        Intent intent =getIntent();
-        intentPos=intent.getIntExtra("pos",-1);
-
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference userRef = database.getReference("items");
-
-        userRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                MainActivity m=new MainActivity();
-                if(!m.clickFlag) {
-                    for (DataSnapshot data : dataSnapshot.getChildren()) {
-                        ItemEntity item = data.getValue(ItemEntity.class);
-                        itemEntities.add(item);
-                    }
-                    if(intentPos!=-1){
-                        nameEditV.setText(itemEntities.get(intentPos).getName());
-                        memoEditV.setText(itemEntities.get(intentPos).getMemo());
-                    }
-                }
+        Intent intent = getIntent();
+        intentPos = intent.getIntExtra("pos", -1);
+        Bundle bundle = intent.getBundleExtra("item_bundle");
+        if (bundle != null) {
+            itemEntities = bundle.getParcelableArrayList("items");
+        } else {
+            itemEntities = new ArrayList<>();
+        }
+        if (intentPos != -1) {
+            nameEditV.setText(itemEntities.get(intentPos).getName());
+            memoEditV.setText(itemEntities.get(intentPos).getMemo());
+            intentItem=itemEntities.get(intentPos);
+            String dlUri = itemEntities.get(intentPos).getImageUrl();
+            if (dlUri != null) {
+                Picasso.with(RegistActivity.this).load(dlUri).fit().centerCrop().into(imageView);
+                imageUri=dlUri;
             }
+        }
+    }
 
-            @Override
-            public void onCancelled(DatabaseError error) {
-                // データの取得に失敗
-            }
-        });
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            backEvent();
+            return super.onKeyDown(keyCode, event);
+        } else {
+            return false;
+        }
     }
 
     public void backActivity(View v) {
+        backEvent();
+    }
 
-        String name=nameEditV.getText().toString();
-        String memo=memoEditV.getText().toString();
+    public void backEvent(){
+        String name = nameEditV.getText().toString();
+        String memo = memoEditV.getText().toString();
 
-        ItemEntity itemEntity=new ItemEntity();
+        ItemEntity itemEntity;
 
         if (name.length() != 0) {
+            if(intentPos!=-1) {
+                itemEntity = intentItem;
+            }
+            else{
+                itemEntity=new ItemEntity();
+            }
+
             itemEntity.setName(name);
-        }
-        if(memo.length()!=0){
-            itemEntity.setMemo(memo);
-        }
-        // Write a message to the database
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("items");
 
-        if(itemEntities==null){
-            itemEntities=new ArrayList<>();
+            if (memo.length() != 0) {
+                itemEntity.setMemo(memo);
+            }
+            if(imageUri.length()!=0){
+                itemEntity.setImageUrl(imageUri);
+            }
+            // Write a message to the database
+            FirebaseDatabase database = FirebaseDatabase.getInstance();
+            DatabaseReference myRef = database.getReference("items");
+
+            if (intentPos == -1) {
+                itemEntities.add(itemEntity);
+            } else {
+                itemEntities.set(intentPos, itemEntity);
+            }
+
+            myRef.setValue(itemEntities);
         }
-
-        itemEntities.add(itemEntity);
-
-        myRef.setValue(itemEntities);
+        else{
+            Toast.makeText(this,"名前を入力してください",Toast.LENGTH_SHORT);
+        }
 
         finish();
     }
@@ -128,20 +154,33 @@ public class RegistActivity extends AppCompatActivity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent resultData) {
         if (requestCode == RESULT_PICK_IMAGEFILE && resultCode == RESULT_OK) {
-            Uri uri = null;
-            if (resultData != null) {
-                uri = resultData.getData();
 
-                try {
-                    Bitmap bmp = getBitmapFromUri(uri);
-                    temp = bmp;
-                    imageView.setImageBitmap(bmp);
-                } catch (IOException e) {
-                    e.printStackTrace();
+            mProgressDialog.setMessage("画像を送信中...！");
+            mProgressDialog.show();
+
+            Uri uri = null;
+            uri = resultData.getData();
+
+            StorageReference filepath = mStorage.child("photos").child(uri.getLastPathSegment());
+            filepath.putFile(uri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                @Override
+                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                    mProgressDialog.dismiss();
+                    Uri downloadUri = taskSnapshot.getDownloadUrl();
+                    imageUri=downloadUri.toString();
+                    Toast.makeText(RegistActivity.this, "Upload done !", Toast.LENGTH_SHORT);
                 }
+            });
+            try {
+                Bitmap bmp = getBitmapFromUri(uri);
+                temp = bmp;
+                imageView.setImageBitmap(bmp);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
+
 
     private Bitmap getBitmapFromUri(Uri uri) throws IOException {
         ParcelFileDescriptor parcelFileDescriptor =

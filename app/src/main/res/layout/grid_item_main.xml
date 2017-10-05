@@ -13,7 +13,7 @@
         android:layout_marginLeft="@dimen/view_cardview_margin_leftright"
         android:layout_marginRight="@dimen/view_cardview_margin_leftright"
         android:layout_marginTop="@dimen/view_cardview_margin_topbottom"
-        app:cardBackgroundColor="@color/colorSubBackGround"
+        app:cardBackgroundColor="@color/colorMainBackGround"
         app:cardCornerRadius="5dp"
         app:cardUseCompatPadding="true">
 

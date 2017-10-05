@@ -3,6 +3,9 @@ package com.example.taiga.nokorimono;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.os.Parcelable;
+import android.support.annotation.NonNull;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -22,6 +25,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -29,6 +34,9 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,10 +61,11 @@ public class MainActivity extends AppCompatActivity {
     ImageView dialogBatteryV;
 
     ArrayList<ItemEntity> itemEntitieList;
+    ArrayList<Bitmap> itemBitmaps;
 
     int clickPos = 0;
 
-    boolean clickFlag=false;
+    boolean clickFlag = false;
 
     Toolbar toolbar;
 
@@ -74,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         itemEntitieList = new ArrayList<>();
+        itemBitmaps=new ArrayList<>();
 
         gridMainAdapter = new GridMainAdapter(this);
 
@@ -93,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
                 DatabaseReference myRef = database.getReference("items");
-                ItemEntity itemEntity=itemEntitieList.get(clickPos);
+                ItemEntity itemEntity = itemEntitieList.get(clickPos);
                 //シークバーの場所でtextの表示変更
                 switch (getSeekGoodPoint(i)) {
                     case 0:
@@ -127,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
                         itemEntity.setNokoriPoint(4);
                         break;
                 }
-                itemEntitieList.set(clickPos,itemEntity);
+                itemEntitieList.set(clickPos, itemEntity);
                 myRef.setValue(itemEntitieList);
             }
 
@@ -149,17 +159,21 @@ public class MainActivity extends AppCompatActivity {
         userRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(!clickFlag) {
-                    //カスタムアダプターの初期化
-                    gridMainAdapter.clear();
-                    itemEntitieList.clear();
-                    //Userインスタンスの取得
-                    for (DataSnapshot data : dataSnapshot.getChildren()) {
-                        ItemEntity item = data.getValue(ItemEntity.class);
-                        gridMainAdapter.add(item);
-                        itemEntitieList.add(item);
-                    }
-                    gridView.setAdapter(gridMainAdapter);
+                //カスタムアダプターの初期化
+                gridMainAdapter.clear();
+                itemEntitieList.clear();
+                //Userインスタンスの取得
+                for (DataSnapshot data : dataSnapshot.getChildren()) {
+                    final ItemEntity item = data.getValue(ItemEntity.class);
+                    gridMainAdapter.add(item);
+                    itemEntitieList.add(item);
+                }
+                gridView.setAdapter(gridMainAdapter);
+
+                if (clickFlag) {
+                    dialogTextV.setText(itemEntitieList.get(clickPos).getName());
+                    dialogEditV.setText(itemEntitieList.get(clickPos).getMemo());
+                    Picasso.with(MainActivity.this).load(gridMainAdapter.getItem(clickPos).getImageUrl()).fit().centerCrop().into(dialogImageV);
                 }
             }
 
@@ -183,7 +197,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int pos, long l) {
                 clickPos = pos;
-                clickFlag=true;
+                clickFlag = true;
+                Picasso.with(MainActivity.this).load(gridMainAdapter.getItem(pos).getImageUrl()).fit().centerCrop().into(dialogImageV);
                 dialogTextV.setText(gridMainAdapter.getItem(pos).getName());
                 dialogEditV.setText(gridMainAdapter.getItem(pos).getMemo());
                 //残りポイントで残高変更
@@ -212,37 +227,53 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu_item_main, menu);
-        return super.onCreateOptionsMenu(menu);
+    public void onResume() {
+        super.onResume();
+//        if(alertDialog!=null){
+//            alertDialog.dismiss();
+//        }
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        switch (id) {
-            case R.id.action_add:
-                //todo 追加アクティビティへ遷移
-                Intent intent = new Intent(this, RegistActivity.class);
-                startActivity(intent);
-
-                return true;
-        }
-        return super.onOptionsItemSelected(item);
+    public void addItem(View v){
+        //todo 追加アクティビティへ遷移
+        Intent intent = new Intent(this, RegistActivity.class);
+        Bundle bundle = new Bundle();
+        bundle.putParcelableArrayList("items", itemEntitieList);
+        intent.putExtra("item_bundle", bundle);
+        startActivity(intent);
     }
 
     //編集ボタンおした時
     public void editItem(View v) {
         //編集画面にいく
         Intent intent = new Intent(this, RegistActivity.class);
-        intent.putExtra("pos",clickPos);
+        Bundle bundle = new Bundle();
+        bundle.putParcelableArrayList("items", itemEntitieList);
+        intent.putExtra("item_bundle", bundle);
+        intent.putExtra("pos", clickPos);
         startActivity(intent);
     }
 
     //削除ボタンおした時
     public void deleteItem(View v) {
         //todo 削除処理
+        new AlertDialog.Builder(MainActivity.this)
+                .setMessage("本当に削除しますか")
+                .setPositiveButton("はい", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // OK button pressed
+                        clickFlag=false;
+                        alertDialog.dismiss();
+                        itemEntitieList.remove(clickPos);
+                        // Write a message to the database
+                        FirebaseDatabase database = FirebaseDatabase.getInstance();
+                        DatabaseReference myRef = database.getReference("items");
+                        myRef.setValue(itemEntitieList);
+                    }
+                })
+                .setNegativeButton("キャンセル", null)
+                .show();
     }
 
     //Dialog表示する
@@ -254,14 +285,15 @@ public class MainActivity extends AppCompatActivity {
                     .setOnDismissListener(new DialogInterface.OnDismissListener() {
                         @Override
                         public void onDismiss(DialogInterface dialogInterface) {
-                            clickFlag=false;
-                            FirebaseDatabase database = FirebaseDatabase.getInstance();
-                            DatabaseReference myRef = database.getReference("items");
-                            ItemEntity itemEntity=itemEntitieList.get(clickPos);
-                            itemEntity.setMemo(dialogEditV.getText().toString());
-                            itemEntitieList.set(clickPos,itemEntity);
-                            myRef.setValue(itemEntitieList);
-                            reloadGridView();
+                            if(clickFlag) {
+                                clickFlag = false;
+                                FirebaseDatabase database = FirebaseDatabase.getInstance();
+                                DatabaseReference myRef = database.getReference("items");
+                                ItemEntity itemEntity = itemEntitieList.get(clickPos);
+                                itemEntity.setMemo(dialogEditV.getText().toString());
+                                itemEntitieList.set(clickPos, itemEntity);
+                                myRef.setValue(itemEntitieList);
+                            }
                         }
                     })
                     .create();
@@ -285,10 +317,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //リロード
-    public void reloadGridView(){
+    public void reloadGridView() {
         //カスタムアダプターの初期化
         gridMainAdapter.clear();
-        for(int i=0;i<itemEntitieList.size();i++){
+        for (int i = 0; i < itemEntitieList.size(); i++) {
             gridMainAdapter.add(itemEntitieList.get(i));
         }
         gridView.setAdapter(gridMainAdapter);

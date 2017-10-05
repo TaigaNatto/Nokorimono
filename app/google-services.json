@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "859377934417-tksj5vvot7famf63diema5psh42nb573.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.taiga.nokorimono",
+            "certificate_hash": "914fb6dc5a136eb581594ed3a0e4a8d05f3845ef"
+          }
+        },
+        {
           "client_id": "859377934417-ge9a31danoq0f467v38noghd06r9gtgv.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,8 +37,13 @@
           "status": 1
         },
         "appinvite_service": {
-          "status": 1,
-          "other_platform_oauth_client": []
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "859377934417-ge9a31danoq0f467v38noghd06r9gtgv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         },
         "ads_service": {
           "status": 2

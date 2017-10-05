@@ -1,12 +1,19 @@
 package com.example.taiga.nokorimono;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 
@@ -21,10 +28,13 @@ public class GridMainAdapter extends BaseAdapter {
 
     private ArrayList<ItemEntity> mItemArray;
 
+    FirebaseStorage fStorage;
+
     public GridMainAdapter(Context context) {
         mContext = context;
         mLayoutInflater = LayoutInflater.from(context);
         mItemArray=new ArrayList<>();
+        fStorage=FirebaseStorage.getInstance();
     }
 
     private static class ViewHolder {
@@ -55,7 +65,7 @@ public class GridMainAdapter extends BaseAdapter {
 
     public View getView(int position, View convertView, ViewGroup parent) {
 
-        ViewHolder holder;
+        final ViewHolder holder;
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(R.layout.grid_item_main, null);
             holder = new ViewHolder();
@@ -65,6 +75,11 @@ public class GridMainAdapter extends BaseAdapter {
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder)convertView.getTag();
+        }
+
+        String dlUri=mItemArray.get(position).getImageUrl();
+        if(dlUri!=null){
+            Picasso.with(mContext).load(dlUri).fit().centerCrop().into(holder.imageView);
         }
 
         holder.gridTextView.setText(mItemArray.get(position).getName());

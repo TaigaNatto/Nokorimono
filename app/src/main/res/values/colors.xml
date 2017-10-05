@@ -5,7 +5,7 @@
     <color name="colorAccent">#33aaff</color>
 
     <color name="colorMainBackGround">#ffffee</color>
-    <color name="colorSubBackGround">#fffff2</color>
+    <color name="colorSubBackGround">#ffffcc</color>
     <color name="colorMainText">#333333</color>
     <color name="colorSubText">#444444</color>
 </resources>
