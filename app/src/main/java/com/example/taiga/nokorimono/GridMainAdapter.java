@@ -82,7 +82,13 @@ public class GridMainAdapter extends BaseAdapter {
             Picasso.with(mContext).load(dlUri).fit().centerCrop().into(holder.imageView);
         }
 
-        holder.gridTextView.setText(mItemArray.get(position).getName());
+        //名前が5文字以上であれば縮小処理
+        if(mItemArray.get(position).getName().length()>5) {
+            holder.gridTextView.setText(mItemArray.get(position).getName().substring(0,4)+"...");
+        }
+        else{
+            holder.gridTextView.setText(mItemArray.get(position).getName());
+        }
         //残りポイントで残高変更
         switch (mItemArray.get(position).getNokoriPoint()) {
             case 0:

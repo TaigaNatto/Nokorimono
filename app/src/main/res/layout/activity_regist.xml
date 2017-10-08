@@ -43,7 +43,8 @@
             android:layout_weight="0.4"
             android:hint="名前"
             android:textColor="@color/colorMainText"
-            android:textColorHint="@color/colorSubText" />
+            android:textColorHint="@color/colorSubText"
+            android:inputType="text"/>
 
         <EditText
             android:id="@+id/regist_memo"

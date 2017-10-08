@@ -1,16 +1,23 @@
 package com.example.taiga.nokorimono;
 
+import android.app.ActivityManager;
+import android.app.Service;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.app.NavUtils;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -25,8 +32,10 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -60,6 +69,12 @@ public class MainActivity extends AppCompatActivity {
     SeekBar dialogSeekV;
     ImageView dialogBatteryV;
 
+    //NavigationDrawer
+    DrawerLayout navigationDrawer;
+    ActionBarDrawerToggle mDrawerToggle;
+    TextView drawerTextV;
+    ImageView drawerImageV;
+
     ArrayList<ItemEntity> itemEntitieList;
     ArrayList<Bitmap> itemBitmaps;
 
@@ -69,21 +84,31 @@ public class MainActivity extends AppCompatActivity {
 
     Toolbar toolbar;
 
+    private FirebaseAuth mAuth;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         //関連付け
+        navigationDrawer=(DrawerLayout)findViewById(R.id.drawer_layout);
         gridView = (GridView) findViewById(R.id.main_grid);
+        drawerTextV = (TextView) findViewById(R.id.drawer_user_name);
+        drawerImageV = (ImageView) findViewById(R.id.drawer_user_image);
 
         // ツールバーをアクションバーとしてセット
         Toolbar toolbar = (Toolbar) findViewById(R.id.tool_bar);
         toolbar.setTitle("");
         setSupportActionBar(toolbar);
 
+        //google関連
+        mAuth = FirebaseAuth.getInstance();
+        drawerTextV.setText(mAuth.getCurrentUser().getEmail());
+        Picasso.with(this).load(mAuth.getCurrentUser().getPhotoUrl()).fit().centerCrop().into(drawerImageV);
+
         itemEntitieList = new ArrayList<>();
-        itemBitmaps=new ArrayList<>();
+        itemBitmaps = new ArrayList<>();
 
         gridMainAdapter = new GridMainAdapter(this);
 
@@ -108,30 +133,35 @@ public class MainActivity extends AppCompatActivity {
                 switch (getSeekGoodPoint(i)) {
                     case 0:
                         dialogSeekTextV.setText("もう無い");
+                        dialogSeekTextV.setTextColor(Color.parseColor("#ff3333"));
                         dialogBatteryV.setImageResource(R.drawable.battery_0_720);
                         // Write a message to the database
                         itemEntity.setNokoriPoint(0);
                         break;
                     case 25:
                         dialogSeekTextV.setText("ちょっとある");
+                        dialogSeekTextV.setTextColor(Color.parseColor("#000000"));
                         dialogBatteryV.setImageResource(R.drawable.battery_1_720);
                         // Write a message to the database
                         itemEntity.setNokoriPoint(1);
                         break;
                     case 50:
                         dialogSeekTextV.setText("まだある");
+                        dialogSeekTextV.setTextColor(Color.parseColor("#000000"));
                         dialogBatteryV.setImageResource(R.drawable.battery_2_720);
                         // Write a message to the database
                         itemEntity.setNokoriPoint(2);
                         break;
                     case 75:
                         dialogSeekTextV.setText("けっこうある");
+                        dialogSeekTextV.setTextColor(Color.parseColor("#000000"));
                         dialogBatteryV.setImageResource(R.drawable.battery_3_720);
                         // Write a message to the database
                         itemEntity.setNokoriPoint(3);
                         break;
                     case 100:
                         dialogSeekTextV.setText("たくさんある");
+                        dialogSeekTextV.setTextColor(Color.parseColor("#000000"));
                         dialogBatteryV.setImageResource(R.drawable.battery_4_720);
                         // Write a message to the database
                         itemEntity.setNokoriPoint(4);
@@ -171,9 +201,17 @@ public class MainActivity extends AppCompatActivity {
                 gridView.setAdapter(gridMainAdapter);
 
                 if (clickFlag) {
-                    dialogTextV.setText(itemEntitieList.get(clickPos).getName());
+                    //名前が8文字以上であれば縮小処理
+                    if(gridMainAdapter.getItem(clickPos).getName().length()>8) {
+                        dialogTextV.setText(gridMainAdapter.getItem(clickPos).getName().substring(0,8)+"...");
+                    }
+                    else{
+                        dialogTextV.setText(gridMainAdapter.getItem(clickPos).getName());
+                    }
                     dialogEditV.setText(itemEntitieList.get(clickPos).getMemo());
-                    Picasso.with(MainActivity.this).load(gridMainAdapter.getItem(clickPos).getImageUrl()).fit().centerCrop().into(dialogImageV);
+                    if (gridMainAdapter.getItem(clickPos).getImageUrl() != null) {
+                        Picasso.with(MainActivity.this).load(gridMainAdapter.getItem(clickPos).getImageUrl()).fit().centerCrop().into(dialogImageV);
+                    }
                 }
             }
 
@@ -198,8 +236,19 @@ public class MainActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int pos, long l) {
                 clickPos = pos;
                 clickFlag = true;
-                Picasso.with(MainActivity.this).load(gridMainAdapter.getItem(pos).getImageUrl()).fit().centerCrop().into(dialogImageV);
-                dialogTextV.setText(gridMainAdapter.getItem(pos).getName());
+                if (gridMainAdapter.getItem(pos).getImageUrl() != null) {
+                    Picasso.with(MainActivity.this).load(gridMainAdapter.getItem(pos).getImageUrl()).fit().centerCrop().into(dialogImageV);
+                }
+                else{
+                    dialogImageV.setImageResource(R.color.colorPrimary);
+                }
+                //名前が8文字以上であれば縮小処理
+                if(gridMainAdapter.getItem(pos).getName().length()>8) {
+                    dialogTextV.setText(gridMainAdapter.getItem(pos).getName().substring(0,8)+"...");
+                }
+                else{
+                    dialogTextV.setText(gridMainAdapter.getItem(pos).getName());
+                }
                 dialogEditV.setText(gridMainAdapter.getItem(pos).getMemo());
                 //残りポイントで残高変更
                 switch (gridMainAdapter.getItem(pos).getNokoriPoint()) {
@@ -234,13 +283,17 @@ public class MainActivity extends AppCompatActivity {
 //        }
     }
 
-    public void addItem(View v){
+    public void addItem(View v) {
         //todo 追加アクティビティへ遷移
         Intent intent = new Intent(this, RegistActivity.class);
         Bundle bundle = new Bundle();
         bundle.putParcelableArrayList("items", itemEntitieList);
         intent.putExtra("item_bundle", bundle);
         startActivity(intent);
+    }
+
+    public void openDrawer(View v){
+        navigationDrawer.openDrawer(Gravity.START);
     }
 
     //編集ボタンおした時
@@ -263,7 +316,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // OK button pressed
-                        clickFlag=false;
+                        clickFlag = false;
                         alertDialog.dismiss();
                         itemEntitieList.remove(clickPos);
                         // Write a message to the database
@@ -276,6 +329,26 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
+    //googleサインアウト
+    public void signoutGoogle(View v) {
+        //todo ユーザー情報削除処理
+        mAuth.signOut();
+        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+        startActivity(intent);
+        finish();
+//        mAuth.getCurrentUser().delete()
+//                .addOnCompleteListener(new OnCompleteListener<Void>() {
+//                    @Override
+//                    public void onComplete(@NonNull Task<Void> task) {
+//                        if (task.isSuccessful()) {
+//                            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+//                            startActivity(intent);
+//                            finish();
+//                        }
+//                    }
+//                });
+    }
+
     //Dialog表示する
     public void showDialog(Context context) {
         if (alertDialog == null) {
@@ -285,7 +358,7 @@ public class MainActivity extends AppCompatActivity {
                     .setOnDismissListener(new DialogInterface.OnDismissListener() {
                         @Override
                         public void onDismiss(DialogInterface dialogInterface) {
-                            if(clickFlag) {
+                            if (clickFlag) {
                                 clickFlag = false;
                                 FirebaseDatabase database = FirebaseDatabase.getInstance();
                                 DatabaseReference myRef = database.getReference("items");
