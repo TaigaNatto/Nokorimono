@@ -202,7 +202,6 @@ public class MainActivity extends AppCompatActivity {
 
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference userRef = database.getReference("items").child(usrHashId);
-
         userRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -237,6 +236,10 @@ public class MainActivity extends AppCompatActivity {
                 // データの取得に失敗
             }
         });
+
+        userRef = database.getReference("users").child(usrHashId);
+        UserEntity userEntity=new UserEntity(usrEmail,1);
+        userRef.setValue(userEntity);
 
 //        /*** 検証用ダミーデータ ***/
 //        for (int i = 1; i <= 20; i++) {
