@@ -47,6 +47,8 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.squareup.picasso.Picasso;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -85,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
     Toolbar toolbar;
 
     private FirebaseAuth mAuth;
+    String usrEmail;
+    String usrHashId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,7 +108,20 @@ public class MainActivity extends AppCompatActivity {
 
         //google関連
         mAuth = FirebaseAuth.getInstance();
-        drawerTextV.setText(mAuth.getCurrentUser().getEmail());
+        usrEmail=mAuth.getCurrentUser().getEmail();
+        //usrEmailからランダムHashId生成
+        MessageDigest md5 = null;
+        try {
+            md5 = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        md5.update(usrEmail.getBytes());
+        byte[] hash = md5.digest();
+        HashClass hashClass=new HashClass();
+        usrHashId=hashClass.getRandomHash(hash);
+        //
+        drawerTextV.setText(usrEmail);
         Picasso.with(this).load(mAuth.getCurrentUser().getPhotoUrl()).fit().centerCrop().into(drawerImageV);
 
         itemEntitieList = new ArrayList<>();
@@ -127,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
-                DatabaseReference myRef = database.getReference("items");
+                DatabaseReference myRef = database.getReference("items").child(usrHashId);
                 ItemEntity itemEntity = itemEntitieList.get(clickPos);
                 //シークバーの場所でtextの表示変更
                 switch (getSeekGoodPoint(i)) {
@@ -184,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference userRef = database.getReference("items");
+        DatabaseReference userRef = database.getReference("items").child(usrHashId);
 
         userRef.addValueEventListener(new ValueEventListener() {
             @Override
@@ -289,6 +306,7 @@ public class MainActivity extends AppCompatActivity {
         Bundle bundle = new Bundle();
         bundle.putParcelableArrayList("items", itemEntitieList);
         intent.putExtra("item_bundle", bundle);
+        intent.putExtra("usrHashId",usrHashId);
         startActivity(intent);
     }
 
@@ -304,6 +322,7 @@ public class MainActivity extends AppCompatActivity {
         bundle.putParcelableArrayList("items", itemEntitieList);
         intent.putExtra("item_bundle", bundle);
         intent.putExtra("pos", clickPos);
+        intent.putExtra("usrHashId",usrHashId);
         startActivity(intent);
     }
 
@@ -321,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
                         itemEntitieList.remove(clickPos);
                         // Write a message to the database
                         FirebaseDatabase database = FirebaseDatabase.getInstance();
-                        DatabaseReference myRef = database.getReference("items");
+                        DatabaseReference myRef = database.getReference("items").child(usrHashId);
                         myRef.setValue(itemEntitieList);
                     }
                 })
@@ -361,7 +380,7 @@ public class MainActivity extends AppCompatActivity {
                             if (clickFlag) {
                                 clickFlag = false;
                                 FirebaseDatabase database = FirebaseDatabase.getInstance();
-                                DatabaseReference myRef = database.getReference("items");
+                                DatabaseReference myRef = database.getReference("items").child(usrHashId);
                                 ItemEntity itemEntity = itemEntitieList.get(clickPos);
                                 itemEntity.setMemo(dialogEditV.getText().toString());
                                 itemEntitieList.set(clickPos, itemEntity);

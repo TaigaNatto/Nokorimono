@@ -58,6 +58,8 @@ public class RegistActivity extends AppCompatActivity {
 
     int intentPos;
 
+    String usrHashId;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,6 +74,7 @@ public class RegistActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         intentPos = intent.getIntExtra("pos", -1);
+        usrHashId=intent.getStringExtra("usrHashId");
         Bundle bundle = intent.getBundleExtra("item_bundle");
         if (bundle != null) {
             itemEntities = bundle.getParcelableArrayList("items");
@@ -127,7 +130,7 @@ public class RegistActivity extends AppCompatActivity {
             }
             // Write a message to the database
             FirebaseDatabase database = FirebaseDatabase.getInstance();
-            DatabaseReference myRef = database.getReference("items");
+            DatabaseReference myRef = database.getReference("items").child(usrHashId);
 
             if (intentPos == -1) {
                 itemEntities.add(itemEntity);
